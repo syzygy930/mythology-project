@@ -108,7 +108,7 @@
     <div class="stats">
         <span>Time: <span class="timer-val" id="timer">0:00</span></span>
         <span>Moves: <span id="moves">0</span></span>
-        <span>Total Pairs: <span id="pairs">0</span> / 24</span>
+        <span>Total Pairs: <span id="pairs">0 / 24</span></span>
     </div>
     <div class="boards">
         <div class="board-section">
@@ -345,7 +345,7 @@
             clearInterval(timerInterval);
             document.getElementById('timer').textContent = '0:00';
             document.getElementById('moves').textContent = '0';
-            document.getElementById('pairs').textContent = '0';
+            document.getElementById('pairs').textContent = '0 / 24';
             document.getElementById('pairsLeft').textContent = '0/12 pairs';
             document.getElementById('pairsRight').textContent = '0/12 pairs';
             document.getElementById('winMessage').style.display = 'none';
@@ -400,7 +400,7 @@
             const total = state.left.matched + state.right.matched;
             document.getElementById('pairsLeft').textContent = `${state.left.matched}/12 pairs`;
             document.getElementById('pairsRight').textContent = `${state.right.matched}/12 pairs`;
-            document.getElementById('pairs').textContent = total;
+            document.getElementById('pairs').textContent = `${total} / 24`;
             if (total === 24) {
                 clearInterval(timerInterval);
                 document.getElementById('winMessage').style.display = 'block';
