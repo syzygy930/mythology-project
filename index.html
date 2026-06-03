@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matching Game</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #1a1a2e;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px 20px;
+        }
+        h1 { margin-bottom: 5px; font-size: 2rem; color: #e94560; }
+        p.subtitle { margin-bottom: 15px; color: #aaa; font-size: 0.95rem; }
+        .stats {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+        }
+        .stats span { background: #16213e; padding: 8px 16px; border-radius: 8px; }
+        .timer-val { color: #e94560; font-weight: bold; }
+        .boards {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            width: 100%;
+        }
+        .board-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+        }
+        .board-label {
+            font-size: 1rem;
+            color: #aaa;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .board-sublabel {
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+            width: 100%;
+        }
+        .card {
+            aspect-ratio: 1;
+            background: #16213e;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s, border-color 0.2s;
+            border: 3px solid #0f3460;
+            user-select: none;
+            text-align: center;
+            padding: 4px;
+            min-width: 0;
+            min-height: 0;
+        }
+        .card:hover { transform: scale(1.05); border-color: #e94560; }
+        .card.selected { background: #0f3460; border-color: #f6a623; transform: scale(1.05); }
+        .card.matched { background: #1b4332; border-color: #52b788; cursor: default; opacity: 0.5; }
+        .card.wrong { background: #4a1525; border-color: #e94560; }
+        .pair-count { margin-top: 8px; font-size: 0.9rem; color: #52b788; }
+        #restart {
+            margin-top: 20px;
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            background: #e94560;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        #restart:hover { background: #c23152; }
+        .win-message {
+            margin-top: 20px;
+            font-size: 1.5rem;
+            color: #52b788;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Double Match</h1>
+    <p class="subtitle">Each grid is its own game — find the 12 pairs in each</p>
+    <div class="stats">
+        <span>Time: <span class="timer-val" id="timer">0:00</span></span>
+        <span>Moves: <span id="moves">0</span></span>
+        <span>Total Pairs: <span id="pairs">0</span>/24</span>
+    </div>
+    <div class="boards">
+        <div class="board-section">
+            <div class="board-label">Greek Olympian Gods</div>
+            <div class="board-sublabel">Match gods to their characteristics</div>
+            <div class="grid" id="gridLeft"></div>
+            <div class="pair-count" id="pairsLeft">0/12 pairs</div>
+        </div>
+        <div class="board-section">
+            <div class="board-label">Pittsburgh Figures</div>
+            <div class="board-sublabel">Match historical figures to their legacy</div>
+            <div class="grid" id="gridRight"></div>
+            <div class="pair-count" id="pairsRight">0/12 pairs</div>
+        </div>
+    </div>
+    <div class="win-message" id="winMessage">You won both!</div>
+    <button id="restart">Restart</button>
+
+    <script>
+        const godDescriptions = {
+            'Zeus': [
+                'King of Gods',
+                'Wielder of Thunderbolts',
+                'Overthrew his father Cronus',
+                'Ruler of Mount Olympus',
+                'Swallowed Metis whole',
+                'Father of Heracles',
+                'Defeated the Titans',
+                'Transformed into a swan',
+            ],
+            'Poseidon': [
+                'God of the Sea',
+                'Carrier of the Trident',
+                'Creator of Horses',
+                'Shaker of the Earth',
+                'Flooded the land of Athens',
+                'Father of the Cyclops',
+                'Rival of Athena',
+                'Ruler of Atlantis',
+            ],
+            'Hera': [
+                'Queen of Gods',
+                'Goddess of Marriage',
+                'Sent serpents to kill Heracles',
+                'Cursed Echo to repeat others',
+                'Drove Heracles to madness',
+                'Punished Zeus\'s lovers',
+                'Mother of Hephaestus',
+                'Eyes of a hundred Argus',
+            ],
+            'Athena': [
+                'Goddess of Wisdom',
+                'Born from Zeus\'s head',
+                'Turned Arachne into a spider',
+                'Patron of Athens',
+                'Gifted the olive tree',
+                'Carried the aegis shield',
+                'Guided Perseus and Odysseus',
+                'Sprang forth in full armor',
+            ],
+            'Ares': [
+                'God of War',
+                'Lover of Aphrodite',
+                'Despised by his own parents',
+                'Trapped in a bronze jar',
+                'Killed Poseidon\'s son Halirrhothius',
+                'Father of the Amazons',
+                'Accompanied by Fear and Terror',
+                'Wounded by Diomedes at Troy',
+            ],
+            'Apollo': [
+                'God of the Sun',
+                'Master of the Lyre',
+                'Slayer of the Python',
+                'Twin brother of Artemis',
+                'Drove the sun chariot daily',
+                'Cursed Cassandra\'s prophecies',
+                'Flayed Marsyas alive',
+                'God of plague and healing',
+            ],
+            'Artemis': [
+                'Goddess of the Hunt',
+                'Tricked into shooting Orion',
+                'Turned Actaeon into a stag',
+                'Protector of young women',
+                'Asked Zeus for eternal virginity',
+                'Hunted with silver arrows',
+                'Born on the island of Delos',
+                'Punished Niobe\'s boasts',
+            ],
+            'Hermes': [
+                'Messenger God',
+                'Guide of dead souls',
+                'Stole Apollo\'s cattle as a baby',
+                'Inventor of the lyre',
+                'Wore winged sandals',
+                'God of thieves and merchants',
+                'Slew the giant Argus',
+                'Fastest of all the gods',
+            ],
+            'Hephaestus': [
+                'God of the Forge',
+                'Thrown from Olympus by Hera',
+                'Built automatons of gold',
+                'Crafted Achilles\' armor',
+                'Trapped Ares in a golden net',
+                'Made Pandora from clay',
+                'Lame god of fire',
+                'Forged Zeus\'s thunderbolts',
+            ],
+            'Aphrodite': [
+                'Goddess of Love',
+                'Born from sea foam',
+                'Owner of a magic girdle',
+                'Sparked the Trojan War',
+                'Won the golden apple',
+                'Mother of Eros',
+                'Married to Hephaestus',
+                'Rescued Paris in battle',
+            ],
+            'Demeter': [
+                'Goddess of Harvest',
+                'Mother of Persephone',
+                'Caused winter in her grief',
+                'Taught mankind to farm',
+                'Wandered earth as an old woman',
+                'Starved the world for her daughter',
+                'Goddess of the Eleusinian Mysteries',
+                'Turned Ascalaphus into an owl',
+            ],
+            'Dionysus': [
+                'God of Wine',
+                'Raised by nymphs in secret',
+                'Turned pirates into dolphins',
+                'Born twice from Zeus',
+                'Driven mad by Hera',
+                'Led the Maenads in frenzy',
+                'Rescued Ariadne on Naxos',
+                'Descended to Hades for his mother',
+            ],
+        };
+
+        function getGodPairs() {
+            const gods = Object.keys(godDescriptions);
+            return gods.map(god => {
+                const descs = godDescriptions[god];
+                const desc = descs[Math.floor(Math.random() * descs.length)];
+                return [god, desc];
+            });
+        }
+
+        const pghDescriptions = {
+            'Andrew Carnegie': ['Steel Magnate'],
+            'Henry Clay Frick': ['Coke & Steel'],
+            'Henry Phipps': ['Carnegie Partner', 'PGH conservatory shares his namesake'],
+            'George Westinghouse': ['AC Power Inventor'],
+            'Andrew Mellon': ['Banking Tycoon'],
+            'Henry Heinz': ['Ketchup Pioneer'],
+            'Jonas Salk': ['Polio Vaccine'],
+            'Fred Rogers': ['TV Neighbor'],
+            'August Wilson': ['Playwright'],
+            'Rachel Carson': ['Silent Spring'],
+            'Stephen Foster': ['Songwriter'],
+            'Roberto Clemente': ['Baseball Legend'],
+        };
+
+        function getPghPairs() {
+            const figures = Object.keys(pghDescriptions);
+            return figures.map(fig => {
+                const descs = pghDescriptions[fig];
+                const desc = descs[Math.floor(Math.random() * descs.length)];
+                return [fig, desc];
+            });
+        }
+
+        let state = {
+            left: { selected: [], matched: 0, locked: false },
+            right: { selected: [], matched: 0, locked: false },
+        };
+        let moves = 0;
+        let timerInterval = null;
+        let seconds = 0;
+        let gameStarted = false;
+
+        function shuffle(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function startTimer() {
+            if (gameStarted) return;
+            gameStarted = true;
+            timerInterval = setInterval(() => {
+                seconds++;
+                const m = Math.floor(seconds / 60);
+                const s = seconds % 60;
+                document.getElementById('timer').textContent = `${m}:${s.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        function buildGrid(gridId, pairs, side) {
+            const grid = document.getElementById(gridId);
+            grid.innerHTML = '';
+
+            let cards = [];
+            pairs.forEach((pair, i) => {
+                cards.push({ text: pair[0], pairId: i });
+                cards.push({ text: pair[1], pairId: i });
+            });
+            shuffle(cards);
+
+            cards.forEach((cardData) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.dataset.pairId = cardData.pairId;
+                card.dataset.side = side;
+                card.textContent = cardData.text;
+                card.addEventListener('click', () => selectCard(card, side));
+                grid.appendChild(card);
+            });
+        }
+
+        function createBoard() {
+            state = {
+                left: { selected: [], matched: 0, locked: false },
+                right: { selected: [], matched: 0, locked: false },
+            };
+            moves = 0;
+            seconds = 0;
+            gameStarted = false;
+            clearInterval(timerInterval);
+            document.getElementById('timer').textContent = '0:00';
+            document.getElementById('moves').textContent = '0';
+            document.getElementById('pairs').textContent = '0';
+            document.getElementById('pairsLeft').textContent = '0/12 pairs';
+            document.getElementById('pairsRight').textContent = '0/12 pairs';
+            document.getElementById('winMessage').style.display = 'none';
+
+            buildGrid('gridLeft', getGodPairs(), 'left');
+            buildGrid('gridRight', getPghPairs(), 'right');
+        }
+
+        function selectCard(card, side) {
+            const s = state[side];
+            if (s.locked) return;
+            if (card.classList.contains('matched')) return;
+            if (card.classList.contains('selected')) {
+                card.classList.remove('selected');
+                s.selected = s.selected.filter(c => c !== card);
+                return;
+            }
+
+            startTimer();
+            card.classList.add('selected');
+            s.selected.push(card);
+
+            if (s.selected.length === 2) {
+                moves++;
+                document.getElementById('moves').textContent = moves;
+                s.locked = true;
+
+                if (s.selected[0].dataset.pairId === s.selected[1].dataset.pairId) {
+                    s.selected[0].classList.remove('selected');
+                    s.selected[1].classList.remove('selected');
+                    s.selected[0].classList.add('matched');
+                    s.selected[1].classList.add('matched');
+                    s.selected = [];
+                    s.locked = false;
+                    s.matched++;
+                    updatePairCounts();
+                } else {
+                    s.selected[0].classList.add('wrong');
+                    s.selected[1].classList.add('wrong');
+                    const cards = [...s.selected];
+                    setTimeout(() => {
+                        cards[0].classList.remove('selected', 'wrong');
+                        cards[1].classList.remove('selected', 'wrong');
+                        s.selected = [];
+                        s.locked = false;
+                    }, 800);
+                }
+            }
+        }
+
+        function updatePairCounts() {
+            const total = state.left.matched + state.right.matched;
+            document.getElementById('pairsLeft').textContent = `${state.left.matched}/12 pairs`;
+            document.getElementById('pairsRight').textContent = `${state.right.matched}/12 pairs`;
+            document.getElementById('pairs').textContent = total;
+            if (total === 24) {
+                clearInterval(timerInterval);
+                document.getElementById('winMessage').style.display = 'block';
+            }
+        }
+
+        document.getElementById('restart').addEventListener('click', createBoard);
+        createBoard();
+    </script>
+</body>
+</html>
